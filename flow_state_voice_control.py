@@ -188,9 +188,15 @@ class IntentParser:
             CommandPattern(r"what song is this$|what's playing(?: right now)?$", CommandType.INFORMATION, "current_track_info", []),
             CommandPattern(r"stop listening$|go to sleep$", CommandType.SYSTEM, "stop_listening", []),
         ]
-        for cp in patterns: # Compile regexes
-            if cp.pattern: try: cp.compiled_pattern = re.compile(cp.pattern, re.IGNORECASE)
-            except re.error as e: logger.error(f"Regex compile error for '{cp.pattern}': {e}"); cp.compiled_pattern = None
+        for cp in patterns:  # Compile regexes
+            if cp.pattern:
+                try:
+                    cp.compiled_pattern = re.compile(cp.pattern, re.IGNORECASE)
+                except re.error as e:
+                    logger.error(
+                        f"Regex compile error for '{cp.pattern}': {e}"
+                    )
+                    cp.compiled_pattern = None
         return patterns
 
     def parse(self, text: str) -> Optional[VoiceCommand]:
@@ -319,7 +325,9 @@ class VoiceCommandHandler: # Full implementation with refined handlers
             self._handle_standard_volume_action(action, parameters)
 
     def _handle_standard_volume_action(self, action: str, parameters: Dict[str, Any]):
-        ae_ref = self.host_app.audio_engine_ref; if not ae_ref: return
+        ae_ref = self.host_app.audio_engine_ref
+        if not ae_ref:
+            return
         current_vol_p = int(ae_ref.volume * 100); change_p = 15; new_vol_p = current_vol_p
         if action == "increase": new_vol_p = min(100, current_vol_p + change_p)
         elif action == "decrease": new_vol_p = max(0, current_vol_p - change_p)
@@ -330,7 +338,10 @@ class VoiceCommandHandler: # Full implementation with refined handlers
         else: self._speak_response(f"Volume at {'max' if new_vol_p == 100 else 'min'}.")
 
     def _handle_search_command(self, action: str, parameters: Dict[str, Any]):
-        query = parameters.get('query'); if not query: self._speak_response("What to search for?",is_error=True); return
+        query = parameters.get('query')
+        if not query:
+            self._speak_response("What to search for?", is_error=True)
+            return
         self._speak_response(f"Searching for {query}...")
         def _cb(results: Optional[List[Any]]):
             if results:
@@ -342,30 +353,93 @@ class VoiceCommandHandler: # Full implementation with refined handlers
 
     def _handle_playlist_command(self, action: str, parameters: Dict[str, Any]):
         if action == "add_to_queue_query":
-            query = parameters.get('query'); if not query: self._speak_response("Add what to queue?",is_error=True); return
+            query = parameters.get('query')
+            if not query:
+                self._speak_response("Add what to queue?", is_error=True)
+                return
             self._speak_response(f"Finding {query} to add...")
+
             def _cb(r):
-                if r: t=r[0]; fp=getattr(t,'file_path',None); title=getattr(t,'title',"that track")
-                     if fp: self.host_app.request_playback_action("add_to_queue_path",{'filepath':fp}); self._speak_response(f"Added {title} to queue.")
-                     else: self._speak_response(f"Found {title}, but no path to add.",is_error=True)
-                else: self._speak_response(f"Couldn't find {query} to add.",is_error=True)
-            self.host_app.request_library_action("search_tracks",{'query':query,'limit':1},callback=_cb)
+                if r:
+                    t = r[0]
+                    fp = getattr(t, 'file_path', None)
+                    title = getattr(t, 'title', "that track")
+                    if fp:
+                        self.host_app.request_playback_action(
+                            "add_to_queue_path", {'filepath': fp}
+                        )
+                        self._speak_response(f"Added {title} to queue.")
+                    else:
+                        self._speak_response(
+                            f"Found {title}, but no path to add.", is_error=True
+                        )
+                else:
+                    self._speak_response(
+                        f"Couldn't find {query} to add.", is_error=True
+                    )
+
+            self.host_app.request_library_action(
+                "search_tracks", {'query': query, 'limit': 1}, callback=_cb
+            )
         elif action == "clear_queue": self.host_app.request_playback_action("clear_playlist_or_queue"); self._speak_response("Queue cleared.")
 
     def _handle_mood_command(self, action: str, parameters: Dict[str, Any]):
-        mood = parameters.get('mood'); if not mood: self._speak_response("What mood?",is_error=True); return
+        mood = parameters.get('mood')
+        if not mood:
+            self._speak_response("What mood?", is_error=True)
+            return
+
         self._speak_response(f"Finding {mood} music...")
         # Placeholder: map mood to genre or use RecommendationEngine if it supports mood queries
-        search_q = {'happy':'pop','energetic':'dance','calm':'ambient','sad':'blues'}.get(mood, mood)
+        search_q = {
+            'happy': 'pop',
+            'energetic': 'dance',
+            'calm': 'ambient',
+            'sad': 'blues',
+        }.get(mood, mood)
+
         def _cb(r):
-            if r: paths=[getattr(t,'file_path',None) for t in random.sample(r,min(len(r),5)) if getattr(t,'file_path',None)]
-                 if paths: self.host_app.request_playback_action("load_playlist_paths",{'paths':paths,'play_first':True,'replace_queue':True}); self._speak_response(f"Here's some {mood} music.")
-                 else: self._speak_response(f"Found {mood} tracks, but couldn't play.",is_error=True)
-            else: self._speak_response(f"Sorry, no {mood} music found.",is_error=True)
-        if self.host_app.recommendation_engine_ref and hasattr(self.host_app.recommendation_engine_ref, 'get_tracks_by_mood'): # Fictional method
-             # self.host_app.recommendation_engine_ref.get_tracks_by_mood(mood, callback=_cb)
-             self.host_app.request_library_action("search_tracks",{'query':search_q,'limit':20},callback=_cb) # Fallback
-        else: self.host_app.request_library_action("search_tracks",{'query':search_q,'limit':20},callback=_cb)
+            if r:
+                paths = [
+                    getattr(t, 'file_path', None)
+                    for t in random.sample(r, min(len(r), 5))
+                    if getattr(t, 'file_path', None)
+                ]
+                if paths:
+                    self.host_app.request_playback_action(
+                        "load_playlist_paths",
+                        {
+                            'paths': paths,
+                            'play_first': True,
+                            'replace_queue': True,
+                        },
+                    )
+                    self._speak_response(f"Here's some {mood} music.")
+                else:
+                    self._speak_response(
+                        f"Found {mood} tracks, but couldn't play.",
+                        is_error=True,
+                    )
+            else:
+                self._speak_response(
+                    f"Sorry, no {mood} music found.", is_error=True
+                )
+
+        if (
+            self.host_app.recommendation_engine_ref
+            and hasattr(
+                self.host_app.recommendation_engine_ref,
+                'get_tracks_by_mood',
+            )
+        ):
+            # self.host_app.recommendation_engine_ref.get_tracks_by_mood(mood, callback=_cb)
+            self.host_app.request_library_action(
+                "search_tracks", {'query': search_q, 'limit': 20}, callback=_cb
+            )  # Fallback
+        else:
+            self.host_app.request_library_action(
+                "search_tracks", {'query': search_q, 'limit': 20}, callback=_cb
+            )
 
     def _handle_navigation_command(self, action: str, parameters: Dict[str, Any]):
         tabs = {"goto_library":"Library","goto_visualizations":"Visualizations","goto_settings":"Manage"} # Manage tab for settings/export

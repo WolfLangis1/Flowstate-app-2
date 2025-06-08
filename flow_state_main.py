@@ -1386,10 +1386,12 @@ if __name__ == '__main__':
         def stop(self, *a, **k): self.is_playing=False;self.is_paused=False; mock_host.publish_event("playback_state_changed",is_playing=False,is_paused=False,position=0)
         def add_to_playlist(self, fp): self.playlist.append(fp); mock_host.publish_event("playback_playlist_changed", playlist=self.playlist, current_index=self.current_index)
         # Add other methods as needed by FlowStateApp
-               def load_playlist_paths(self, paths, play_first, replace_queue):
+        def load_playlist_paths(self, paths, play_first, replace_queue):
             self.playlist = paths
             self.current_index = 0 if paths else -1
-            mock_host.publish_event("playback_playlist_changed", playlist=self.playlist, current_index=self.current_index)
+            mock_host.publish_event(
+                "playback_playlist_changed", playlist=self.playlist, current_index=self.current_index
+            )
             if play_first and paths:
                 self.play()
         def clear_playlist(self): self.playlist=[]; self.current_index=-1; mock_host.publish_event("playback_playlist_changed", playlist=self.playlist, current_index=self.current_index)
