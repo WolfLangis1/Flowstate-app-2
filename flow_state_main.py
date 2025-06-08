@@ -1352,11 +1352,18 @@ if __name__ == '__main__':
             self._event_callbacks: Dict[str, List[Callable]] = {}
             def req_pb(action, params=None, callback=None): print(f"MockHost: request_playback_action '{action}' PARAMS: {params}")
             self.request_playback_action = req_pb
-            def req_lib(action, params=None, callback=None): print(f"MockHost: request_library_action '{action}' PARAMS: {params}"); return [] if callback is None else self.root.after(0, callback, [])
+            def req_lib(action, params=None, callback=None):
+                print(f"MockHost: request_library_action '{action}' PARAMS: {params}")
+                return [] if callback is None else self.root.after(0, callback, [])
+
             self.request_library_action = req_lib
-            def pub_ev(name, *a, **kw): 
-                logger.debug(f"MockHost: publish_event '{name}' Args: {a} Kwargs: {kw}")
-                cbs = self._event_callbacks.get(name,[]); [self.root.after(0,cb,*a,**kw) for cb in cbs]
+
+            def pub_ev(name, *a, **kw):
+                logger.debug(
+                    f"MockHost: publish_event '{name}' Args: {a} Kwargs: {kw}"
+                )
+                cbs = self._event_callbacks.get(name, [])
+                [self.root.after(0, cb, *a, **kw) for cb in cbs]
             self.publish_event = pub_ev
             def sub_ev(name, cb): self._event_callbacks.setdefault(name,[]).append(cb)
             self.subscribe_to_event = sub_ev
@@ -1379,12 +1386,60 @@ if __name__ == '__main__':
         current_metadata_obj=None; playlist=[]; current_index=-1; duration_sec=0.0; effects_output_buffer_for_viz = np.zeros(2048)
         effects_chain_ref_from_host = None; sample_rate=44100; channels=2; current_file = None
         original_playlist_order = []
-        def get_position(self): return self.playback_position_sec if hasattr(self, 'playback_position_sec') else 0.0
-        def load_track(self, fp, playlist_context=None, playlist_index=None): self.current_file=fp; self.current_metadata_obj=AudioMetadata(file_path=fp, title=Path(fp).stem, duration=180); self.duration_sec=180; self.playlist=[fp]; self.current_index=0; mock_host.publish_event("audio_track_loaded_basic", metadata=self.current_metadata_obj) ; return True
-        def play(self, *a, **k): self.is_playing=True; self.is_paused=False; mock_host.publish_event("playback_state_changed", is_playing=True,is_paused=False,position=0)
-        def pause(self, *a, **k): self.is_paused=True; mock_host.publish_event("playback_state_changed", is_playing=True,is_paused=True,position=self.get_position())
-        def stop(self, *a, **k): self.is_playing=False;self.is_paused=False; mock_host.publish_event("playback_state_changed",is_playing=False,is_paused=False,position=0)
-        def add_to_playlist(self, fp): self.playlist.append(fp); mock_host.publish_event("playback_playlist_changed", playlist=self.playlist, current_index=self.current_index)
+        def get_position(self):
+            return (
+                self.playback_position_sec
+                if hasattr(self, "playback_position_sec")
+                else 0.0
+            )
+
+        def load_track(
+            self, fp, playlist_context=None, playlist_index=None
+        ) -> bool:
+            self.current_file = fp
+            self.current_metadata_obj = AudioMetadata(
+                file_path=fp,
+                title=Path(fp).stem,
+                duration=180,
+            )
+            self.duration_sec = 180
+            self.playlist = [fp]
+            self.current_index = 0
+            mock_host.publish_event(
+                "audio_track_loaded_basic", metadata=self.current_metadata_obj
+            )
+            return True
+
+        def play(self, *a, **k):
+            self.is_playing = True
+            self.is_paused = False
+            mock_host.publish_event(
+                "playback_state_changed", is_playing=True, is_paused=False, position=0
+            )
+
+        def pause(self, *a, **k):
+            self.is_paused = True
+            mock_host.publish_event(
+                "playback_state_changed",
+                is_playing=True,
+                is_paused=True,
+                position=self.get_position(),
+            )
+
+        def stop(self, *a, **k):
+            self.is_playing = False
+            self.is_paused = False
+            mock_host.publish_event(
+                "playback_state_changed", is_playing=False, is_paused=False, position=0
+            )
+
+        def add_to_playlist(self, fp):
+            self.playlist.append(fp)
+            mock_host.publish_event(
+                "playback_playlist_changed",
+                playlist=self.playlist,
+                current_index=self.current_index,
+            )
         # Add other methods as needed by FlowStateApp
         def load_playlist_paths(self, paths, play_first, replace_queue):
             self.playlist = paths
@@ -1394,10 +1449,31 @@ if __name__ == '__main__':
             )
             if play_first and paths:
                 self.play()
-        def clear_playlist(self): self.playlist=[]; self.current_index=-1; mock_host.publish_event("playback_playlist_changed", playlist=self.playlist, current_index=self.current_index)
-        def remove_track_from_playlist_at_index(self,idx): self.playlist.pop(idx); mock_host.publish_event("playback_playlist_changed",playlist=self.playlist, current_index=self.current_index); return True
-        def set_shuffle_mode(self, enable): self.shuffle_mode=enable; mock_host.publish_event("shuffle_mode_changed",shuffle_on=enable)
-        def set_repeat_mode(self, mode): self.repeat_mode=mode; mock_host.publish_event("repeat_mode_changed",mode=mode)
+        def clear_playlist(self):
+            self.playlist = []
+            self.current_index = -1
+            mock_host.publish_event(
+                "playback_playlist_changed",
+                playlist=self.playlist,
+                current_index=self.current_index,
+            )
+
+        def remove_track_from_playlist_at_index(self, idx) -> bool:
+            self.playlist.pop(idx)
+            mock_host.publish_event(
+                "playback_playlist_changed",
+                playlist=self.playlist,
+                current_index=self.current_index,
+            )
+            return True
+
+        def set_shuffle_mode(self, enable):
+            self.shuffle_mode = enable
+            mock_host.publish_event("shuffle_mode_changed", shuffle_on=enable)
+
+        def set_repeat_mode(self, mode):
+            self.repeat_mode = mode
+            mock_host.publish_event("repeat_mode_changed", mode=mode)
 
 
     mock_host.audio_engine_ref = MockAudioEngine()
