@@ -11,4 +11,5 @@ echo Starting Flow State Music Player...
 "%~dp0flowstate_env\Scripts\python.exe" "%~dp0flow_state_launcher.py" %*
 echo Flow State Music Player exited.
 REM Add a pause if you want the window to stay open after app closes when double-clicked
-pause >nul 
+pause >nul
+

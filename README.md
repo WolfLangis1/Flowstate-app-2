@@ -2,7 +2,7 @@
 
 # Flow State - Next Generation Music Player 🎵
 
-Flow State is an advanced, feature-rich, AI-powered music player designed for an immersive and intelligent listening experience. It goes beyond traditional players by integrating advanced audio visualizations, real-time collaboration features, voice control, and smart music discovery, all within an extensible, themable Python application.
+Flow State is an advanced, feature-rich, AI-powered music player designed for an immersive and intelligent listening experience. It goes beyond traditional players by integrating advanced audio visualizations, real-time collaboration features, voice control, and smart music discovery, all within an extensible, themeable Python application.
 
 ## ✨ Core Vision
 
@@ -55,6 +55,9 @@ To create a music experience that is:
 To launch with development flags or run specific module tests:
 ```bash
 # Using generated script
-./run_flow_state_music_player.sh --dev 
+./run_flow_state_music_player.sh --dev
 # or to attempt running a specific module's __main__ block
-./run_flow_state_music_player.sh --dev --run main 
+./run_flow_state_music_player.sh --dev --run main
+
+```
+

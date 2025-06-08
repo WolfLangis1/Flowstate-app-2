@@ -21,6 +21,7 @@ import random
 import tkinter as tk 
 from tkinter import ttk, filedialog, messagebox
 import threading
+from collections import deque
 # import queue # Not actively used by engine, UI might use for async tasks
 from PIL import Image, ImageTk 
 import io # For image saving if needed directly
